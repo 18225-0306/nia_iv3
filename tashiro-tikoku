@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>遅刻カウンター</title>
+
+  <style>
+    :root {
+      --bg: #0b0b0e;
+      --panel: #15151a;
+      --panel-light: #1d1d24;
+      --border: #303039;
+      --text: #f5f5f7;
+      --sub-text: #9d9da8;
+      --accent: #ff4d67;
+      --accent-dark: #b72c43;
+      --success: #36d399;
+      --warning: #ffb84d;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top, #25252e 0%, transparent 38%),
+        var(--bg);
+      font-family:
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        "Hiragino Kaku Gothic ProN",
+        "Yu Gothic",
+        sans-serif;
+    }
+
+    .container {
+      width: min(960px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 42px 0 64px;
+    }
+
+    header {
+      margin-bottom: 24px;
+    }
+
+    .eyebrow {
+      margin-bottom: 10px;
+      color: var(--accent);
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(2rem, 5vw, 3.6rem);
+      letter-spacing: -0.05em;
+    }
+
+    .subtitle {
+      margin: 12px 0 0;
+      color: var(--sub-text);
+    }
+
+    /* 連続遅刻カード */
+    .streak-card {
+      position: relative;
+      overflow: hidden;
+      margin-bottom: 20px;
+      padding: 28px 32px;
+      border: 1px solid #48232c;
+      border-radius: 24px;
+      background:
+        linear-gradient(135deg, rgba(255, 77, 103, 0.18), transparent 62%),
+        var(--panel);
+      box-shadow: 0 18px 50px rgba(0, 0, 0, 0.25);
+    }
+
+    .streak-card::after {
+      content: "";
+      position: absolute;
+      top: -75px;
+      right: -45px;
+      width: 190px;
+      height: 190px;
+      border-radius: 50%;
+      background: rgba(255, 77, 103, 0.12);
+    }
+
+    .streak-label {
+      position: relative;
+      z-index: 1;
+      color: var(--sub-text);
+      font-size: 0.9rem;
+    }
+
+    .streak-number-row {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+    }
+
+    #streakCount {
+      display: inline-block;
+      color: var(--accent);
+      font-size: clamp(4rem, 14vw, 7rem);
+      font-weight: 800;
+      line-height: 1;
+      letter-spacing: -0.09em;
+    }
+
+    #streakCount.bump {
+      animation: bump 0.55s ease;
+    }
+
+    .streak-unit {
+      color: var(--accent);
+      font-size: 1.1rem;
+      font-weight: 700;
+    }
+
+    #streakMessage {
+      position: relative;
+      z-index: 1;
+      margin: 12px 0 0;
+      color: var(--sub-text);
+    }
+
+    @keyframes bump {
+      0% {
+        transform: scale(1);
+      }
+
+      45% {
+        transform: scale(1.2);
+      }
+
+      100% {
+        transform: scale(1);
+      }
+    }
+
+    .dashboard {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    .card {
+      background: rgba(21, 21, 26, 0.92);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 28px;
+      box-shadow: 0 18px 50px rgba(0, 0, 0, 0.25);
+    }
+
+    .counter-card {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 330px;
+    }
+
+    .card-label {
+      color: var(--sub-text);
+      font-size: 0.9rem;
+    }
+
+    .counter {
+      margin: 12px 0 28px;
+      color: var(--accent);
+      font-size: clamp(5rem, 15vw, 9rem);
+      font-weight: 800;
+      line-height: 0.9;
+      letter-spacing: -0.08em;
+    }
+
+    .counter.bump {
+      animation: bump 0.55s ease;
+    }
+
+    .date-box {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 20px;
+      padding: 14px 16px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: var(--panel-light);
+    }
+
+    .date-box strong {
+      font-size: 1.1rem;
+    }
+
+    .today-badge {
+      color: var(--success);
+      font-size: 0.8rem;
+      font-weight: 700;
+    }
+
+    .button-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    button {
+      border: 0;
+      border-radius: 14px;
+      padding: 16px;
+      color: white;
+      cursor: pointer;
+      font: inherit;
+      font-weight: 700;
+      transition:
+        transform 0.2s ease,
+        filter 0.2s ease,
+        background 0.2s ease;
+    }
+
+    button:hover {
+      filter: brightness(1.15);
+      transform: translateY(-2px);
+    }
+
+    button:active {
+      transform: translateY(0) scale(0.98);
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.45;
+      transform: none;
+      filter: none;
+    }
+
+    .arrived-btn {
+      background: #176c52;
+    }
+
+    .late-btn {
+      background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+    }
+
+    .reset-btn {
+      width: 100%;
+      margin-top: 16px;
+      padding: 12px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--sub-text);
+      font-size: 0.85rem;
+    }
+
+    .info-card {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .info-card h2,
+    .history-card h2 {
+      margin: 0 0 12px;
+      font-size: 1.35rem;
+    }
+
+    .info-card p {
+      margin: 0;
+      color: var(--sub-text);
+      line-height: 1.8;
+    }
+
+    .info-list {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      margin-top: 24px;
+    }
+
+    .info-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: var(--sub-text);
+      font-size: 0.9rem;
+    }
+
+    .info-icon {
+      display: grid;
+      width: 30px;
+      height: 30px;
+      place-items: center;
+      border-radius: 50%;
+      background: var(--panel-light);
+      color: var(--accent);
+      font-weight: 700;
+    }
+
+    .history-card {
+      margin-top: 20px;
+    }
+
+    .history-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .history-item {
+      display: grid;
+      grid-template-columns: 120px 100px 1fr;
+      align-items: center;
+      gap: 16px;
+      padding: 15px 16px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: var(--panel-light);
+    }
+
+    .history-date {
+      color: var(--sub-text);
+      font-size: 0.9rem;
+    }
+
+    .status {
+      width: fit-content;
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 0.78rem;
+      font-weight: 700;
+    }
+
+    .status.arrived {
+      color: var(--success);
+      background: rgba(54, 211, 153, 0.12);
+    }
+
+    .status.late {
+      color: var(--accent);
+      background: rgba(255, 77, 103, 0.12);
+    }
+
+    .empty-history {
+      padding: 24px 0 8px;
+      color: var(--sub-text);
+      text-align: center;
+    }
+
+    /* クラッカー */
+    #confetti-container {
+      position: fixed;
+      inset: 0;
+      z-index: 999;
+      overflow: hidden;
+      pointer-events: none;
+    }
+
+    .confetti {
+      position: absolute;
+      top: -20px;
+      width: 9px;
+      height: 18px;
+      opacity: 0;
+      animation: fall 1.8s ease-out forwards;
+    }
+
+    @keyframes fall {
+      0% {
+        opacity: 1;
+        transform: translate3d(0, -20px, 0) rotate(0deg);
+      }
+
+      100% {
+        opacity: 0;
+        transform:
+          translate3d(var(--x), 105vh, 0)
+          rotate(var(--rotate));
+      }
+    }
+
+    @media (max-width: 720px) {
+      .container {
+        padding-top: 28px;
+      }
+
+      .dashboard {
+        grid-template-columns: 1fr;
+      }
+
+      .card,
+      .streak-card {
+        padding: 22px;
+        border-radius: 20px;
+      }
+
+      .history-item {
+        grid-template-columns: 1fr auto;
+        gap: 8px;
+      }
+
+      .history-date {
+        grid-column: 1 / -1;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="container">
+    <header>
+      <div class="eyebrow">Daily Attendance Tracker</div>
+      <h1>遅刻カウンター</h1>
+      <p class="subtitle">
+        今日、来たか来ていないかを記録します。
+      </p>
+    </header>
+
+    <!-- 一番上に表示する連続遅刻回数 -->
+    <section class="streak-card">
+      <div class="streak-label">連続遅刻回数</div>
+
+      <div class="streak-number-row">
+        <span id="streakCount">0</span>
+        <span class="streak-unit">日</span>
+      </div>
+
+      <p id="streakMessage">
+        まだ連続遅刻はありません
+      </p>
+    </section>
+
+    <section class="dashboard">
+      <div class="card counter-card">
+        <div>
+          <div class="card-label">累計遅刻回数</div>
+          <div id="lateCount" class="counter">0</div>
+        </div>
+
+        <div>
+          <div class="date-box">
+            <strong id="todayText"></strong>
+            <span class="today-badge">TODAY</span>
+          </div>
+
+          <div class="button-row">
+            <button id="arrivedButton" class="arrived-btn">
+              ✓ 来た
+            </button>
+
+            <button id="lateButton" class="late-btn">
+              × 来てない
+            </button>
+          </div>
+
+          <button id="resetButton" class="reset-btn">
+            すべての記録をリセット
+          </button>
+        </div>
+      </div>
+
+      <div class="card info-card">
+        <h2>使い方</h2>
+
+        <p>
+          毎日、来たか来ていないかを選択してください。
+          「来てない」を選ぶと、累計遅刻回数と連続遅刻回数が増えます。
+        </p>
+
+        <div class="info-list">
+          <div class="info-item">
+            <span class="info-icon">✓</span>
+            <span>来た場合は連続遅刻がリセットされます</span>
+          </div>
+
+          <div class="info-item">
+            <span class="info-icon">×</span>
+            <span>来てない場合は遅刻回数が増えます</span>
+          </div>
+
+          <div class="info-item">
+            <span class="info-icon">⌂</span>
+            <span>記録はこのブラウザに保存されます</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card history-card">
+      <h2>記録履歴</h2>
+      <div id="historyList" class="history-list"></div>
+    </section>
+  </main>
+
+  <div id="confetti-container"></div>
+
+  <script>
+    const STORAGE_KEY = "late-counter-data";
+
+    const lateCountElement = document.getElementById("lateCount");
+    const streakCountElement = document.getElementById("streakCount");
+    const streakMessageElement =
+      document.getElementById("streakMessage");
+
+    const todayTextElement = document.getElementById("todayText");
+    const arrivedButton = document.getElementById("arrivedButton");
+    const lateButton = document.getElementById("lateButton");
+    const resetButton = document.getElementById("resetButton");
+    const historyList = document.getElementById("historyList");
+    const confettiContainer =
+      document.getElementById("confetti-container");
+
+    const today = getDateKey(new Date());
+
+    let data = JSON.parse(
+      localStorage.getItem(STORAGE_KEY)
+    ) || {
+      lateCount: 0,
+      records: {}
+    };
+
+    function getDateKey(date) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+
+      return `${year}-${month}-${day}`;
+    }
+
+    function formatDate(dateKey) {
+      const [year, month, day] = dateKey.split("-");
+
+      return `${year}年${Number(month)}月${Number(day)}日`;
+    }
+
+    function getPreviousDate(dateKey) {
+      const date = new Date(`${dateKey}T00:00:00`);
+      date.setDate(date.getDate() - 1);
+
+      return getDateKey(date);
+    }
+
+    function saveData() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    }
+
+    /*
+      連続遅刻回数を計算します。
+
+      今日の記録がある場合：
+      今日から過去に向かって計算
+
+      今日の記録がまだない場合：
+      直近の記録日から過去に向かって計算
+    */
+    function getCurrentStreak() {
+      const recordDates = Object.keys(data.records);
+
+      if (recordDates.length === 0) {
+        return 0;
+      }
+
+      const latestDate = recordDates.sort().reverse()[0];
+
+      let checkDate = data.records[today]
+        ? today
+        : latestDate;
+
+      let streak = 0;
+
+      while (
+        data.records[checkDate] &&
+        data.records[checkDate].status === "late"
+      ) {
+        streak++;
+        checkDate = getPreviousDate(checkDate);
+      }
+
+      return streak;
+    }
+
+    function render() {
+      lateCountElement.textContent = data.lateCount;
+      todayTextElement.textContent = formatDate(today);
+
+      const streak = getCurrentStreak();
+
+      streakCountElement.textContent = streak;
+
+      if (streak === 0) {
+        streakMessageElement.textContent =
+          "まだ連続遅刻はありません";
+      } else if (streak === 1) {
+        streakMessageElement.textContent =
+          "現在、1日連続で遅刻しています";
+      } else {
+        streakMessageElement.textContent =
+          `現在、${streak}日連続で遅刻しています`;
+      }
+
+      const todayRecord = data.records[today];
+
+      arrivedButton.disabled = Boolean(todayRecord);
+      lateButton.disabled = Boolean(todayRecord);
+
+      renderHistory();
+    }
+
+    function renderHistory() {
+      const records = Object.entries(data.records)
+        .sort(([dateA], [dateB]) => {
+          return dateB.localeCompare(dateA);
+        });
+
+      if (records.length === 0) {
+        historyList.innerHTML = `
+          <div class="empty-history">
+            まだ記録がありません。
+          </div>
+        `;
+
+        return;
+      }
+
+      historyList.innerHTML = records.map(([date, record]) => {
+        const isLate = record.status === "late";
+
+        return `
+          <div class="history-item">
+            <div class="history-date">
+              ${formatDate(date)}
+            </div>
+
+            <span class="status ${isLate ? "late" : "arrived"}">
+              ${isLate ? "来てない" : "来た"}
+            </span>
+
+            <div></div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function markAttendance(status) {
+      if (data.records[today]) {
+        return;
+      }
+
+      data.records[today] = {
+        status
+      };
+
+      if (status === "late") {
+        data.lateCount++;
+        animateElement(lateCountElement);
+        animateElement(streakCountElement);
+      } else {
+        animateElement(streakCountElement);
+      }
+
+      saveData();
+      render();
+      fireConfetti();
+    }
+
+    function animateElement(element) {
+      element.classList.remove("bump");
+
+      // アニメーションを再実行
+      void element.offsetWidth;
+
+      element.classList.add("bump");
+    }
+
+    function fireConfetti() {
+      const colors = [
+        "#ff4d67",
+        "#ffb84d",
+        "#36d399",
+        "#6ea8ff",
+        "#c084fc",
+        "#ffffff"
+      ];
+
+      for (let i = 0; i < 90; i++) {
+        const piece = document.createElement("span");
+
+        piece.className = "confetti";
+        piece.style.left = `${Math.random() * 100}%`;
+        piece.style.backgroundColor =
+          colors[Math.floor(Math.random() * colors.length)];
+
+        piece.style.setProperty(
+          "--x",
+          `${(Math.random() - 0.5) * 500}px`
+        );
+
+        piece.style.setProperty(
+          "--rotate",
+          `${Math.random() * 1000 - 500}deg`
+        );
+
+        piece.style.animationDelay =
+          `${Math.random() * 0.25}s`;
+
+        confettiContainer.appendChild(piece);
+
+        setTimeout(() => {
+          piece.remove();
+        }, 2300);
+      }
+    }
+
+    arrivedButton.addEventListener("click", () => {
+      markAttendance("arrived");
+    });
+
+    lateButton.addEventListener("click", () => {
+      markAttendance("late");
+    });
+
+    resetButton.addEventListener("click", () => {
+      const confirmed = confirm(
+        "すべての記録とカウンターをリセットしますか？"
+      );
+
+      if (!confirmed) {
+        return;
+      }
+
+      data = {
+        lateCount: 0,
+        records: {}
+      };
+
+      saveData();
+      render();
+    });
+
+    render();
+  </script>
+</body>
+</html>
